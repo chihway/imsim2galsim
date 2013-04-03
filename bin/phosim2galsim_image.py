@@ -1,24 +1,35 @@
 #! /bin/env python
 
 # Purpose:
-#
-# Take the output catalog from phosim2carsim_catalog.py and paint galaxies 
-# one-by-one in GalSim. Standard procedure as follows:
+# Take the output catalog from phosim2carsim_catalog.py and paint 
+# galaxies in GalSim. This process includes:
 # - define image
 # - define PSF
 # - define pixel
-# - put down star and shift
-# - put down galaxy and shift
-# - choose to do photon shooting or not?
+# - put down star in stamps
+# - put down galaxy in stamps
+# - write everything into the image
+#
+# Options:
+# - choose to do photon shooting or FFT convolved
+# - ??
+#
+# Required:
+# - configuration file and/or defult_config
+# - star catalog
+# - galaxy catalog
+#
 
 import sys, os, math, numpy, logging, time, galsim
+
+# define input and output files
 
 def main(argv):
     """
     Make an image from a phosim-converted catalog.
     """
     logging.basicConfig(format="%(message)s", level=logging.INFO, stream=sys.stdout)
-    logger = logging.getLogger("phosim2galsim_test1")
+    logger = logging.getLogger()
 
     configfilename='data/config'   # configuration file
     starfilename='data/star'       # star catalog

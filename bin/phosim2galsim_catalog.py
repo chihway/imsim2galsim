@@ -20,8 +20,9 @@
 #          [output config file] [output galaxy file] [output star file]
 #
 # Note: 
-# This runs a while, mainly due to the magnitude conversion involves 
+# - This runs a while, mainly due to the magnitude conversion involves 
 # integration of each galaxy SED...
+# - Eliminated objects with flux < ?
 #
 
 import os, numpy, sys, logging
@@ -172,6 +173,14 @@ for i in range(len(inlines)):
       logger.info(string)
       outfile1.write(string)
 
+    if (inlines[i].split()[0]=='vistime'):
+      vistime=float(inlines[i].split()[1])
+      # save parameter for later use
+
+    if (inlines[i].split()[0]=='nsnap'):
+      nsnap=float(inlines[i].split()[1])
+      # save parameter for later use
+
 sky_count = magNorm2LSSTFlux.magNorm2LSSTFlux(str(skysed), str(filtdir)
   +'total_'+str(Filt[filt])+'.dat', zenith_v, 0.0) * pixelsize**2                 
 # counts per pixels (the counts look low... need checking!)
@@ -212,6 +221,10 @@ logger.info(string)
 outfile1.write(string)
 
 string='saturation '+str(saturation)+'\n'
+logger.info(string)
+outfile1.write(string)
+
+string='exptime '+str((vistime-3.0*(nsnap-1))/nsnap)+'\n'
 logger.info(string)
 outfile1.write(string)
 

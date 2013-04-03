@@ -19,8 +19,14 @@
 # - star catalog
 # - galaxy catalog
 #
+# Note:
+# Super bright stars currently do not make sensible images. I think it's 
+# fine to leave it as is, but the effect of the bright star is conservative 
+# in this way. (no bleeding, no halo)
 
 import sys, os, math, numpy, logging, time, galsim
+import read_config
+import add_LSST_DM_header
 
 logging.basicConfig(format="%(message)s", level=logging.INFO, stream=sys.stdout)
 logger = logging.getLogger()
@@ -29,58 +35,34 @@ logger.info('Define all file names')
 configfilename=sys.argv[1]      # configuration file
 starfilename=sys.argv[2]        # star catalog
 galfilename=sys.argv[3]         # galaxy catalog
-outfilename=sys.argv[4]         # output file
-photon=int(sys.argv[5])         # whether to use photon-shotting mode
+tempoutfilename=sys.argv[4]     # output file without header
+outfilename=sys.argv[5]         # output file with header
+photon=int(sys.argv[6])         # whether to use photon-shotting mode
 
 if os.path.isfile(outfilename):
   os.remove(outfilename)
+if os.path.isfile(tempoutfilename):
+  os.remove(tempoutfilename)
+
 logger.info('Configuration file: '+str(configfilename))
 logger.info('Star catalog file: '+str(starfilename))
 logger.info('Galaxy catalog file: '+str(galfilename))
 logger.info('Output file: '+str(outfilename))
 
 logger.info('Get observation and instrument-specific parameters from the config file...')
-configfile=open(configfilename,'r')
-configlines=configfile.readlines()
-configfile.close()
-for i in range(len(configlines)):
-  parameter=configlines[i].split()
-  if (parameter[0]=='id'):
-    Id=int(parameter[1]) 
-  if (parameter[0]=='airmass'):
-    Airmass=float(parameter[1]) 
-  if (parameter[0]=='rotationangle'):
-    Rot=float(parameter[1]) 
-  if (parameter[0]=='pointingra'):
-    Ra=float(parameter[1]) 
-  if (parameter[0]=='pointingdec'):
-    Dec=float(parameter[1]) 
-  if (parameter[0]=='obsseed'):
-    Seed=int(parameter[1]) 
-  if (parameter[0]=='filter'):
-    Filter=int(parameter[1]) 
-  if (parameter[0]=='atmseeing'):
-    Atmseeing=float(parameter[1]) 
-  if (parameter[0]=='sky_count'):
-    Sky=int(float(parameter[1])) 
-  if (parameter[0]=='chipsize'):
-    Chipsize=int(parameter[1]) 
-  if (parameter[0]=='pixelsize'):
-    Pixelsize=float(parameter[1])
-  if (parameter[0]=='optpsfsize'):
-    Optpsfsize=float(parameter[1])
+Id, Airmass, Rot, Ra, Dec, Seed, Filter, Atmseeing, Sky, Rx, Ry, Sx, Sy, Saturation, Chipsizex, Chipsizey, Pixelsize, Optpsfsize = read_config.read_configrea(configfilename)
 
 logger.info('Defining image...')
-full_image = galsim.ImageF(Chipsize, Chipsize)
+full_image = galsim.ImageF(Chipsizex, Chipsizey)
 full_image.setScale(Pixelsize)
 im_center = full_image.bounds.center()
 im_center = galsim.PositionD(im_center.x, im_center.y)
 
 logger.info('Make the PSF: Kolmogorov atmosphere + Moffat optics')
-atm_psf = galsim.Kolmogorov(fwhm = Atmseeing) # airmass-corrected
-Optpsfsize=Optpsfsize*Airmass**0.6            # arcsec
-Optpsfbeta = 3                                # what is this?
-Optpsftrunc = 3.*Optpsfsize                   # arcsec 
+atm_psf = galsim.Kolmogorov(fwhm = Atmseeing*Airmass**0.6) # arcsec
+Optpsfsize=Optpsfsize*Airmass**0.6                         # arcsec
+Optpsfbeta = 3                                             # what is this?
+Optpsftrunc = 3.*Optpsfsize                                # arcsec 
 opt_psf=galsim.Moffat(beta=Optpsfbeta, fwhm=Optpsfsize, trunc=Optpsftrunc)
 
 logger.info('Make the pixels')
@@ -106,7 +88,8 @@ for k in range(len(gallines)):
   galFlux=int(float(parameters[4])*25)
   galA=float(parameters[5])
   galB=float(parameters[6])
-  galPhi=float(parameters[7])+numpy.pi/2
+  galPhi=float(parameters[7])+numpy.pi/2+float(Rot/180.0*numpy.pi)  
+  # this will change in the next phosim version!!
   galN=float(parameters[8])
   re=(galA*galB)**0.5
   gale=(galA**2-galB**2)/(galA**2+galB**2)
@@ -184,5 +167,7 @@ rng = galsim.UniformDeviate(Seed) # Initialize the random number generator
 full_image.addNoise(galsim.PoissonNoise(rng, sky_level=Sky))
 
 logger.info('Now Write the file to disk')
-full_image.write(outfilename)
+full_image.write(tempoutfilename)
 
+logger.info('Re-open the fits files to append the appropriate headers')
+add_LSST_DM_header.add_header(tempoutfilename, configfilename, outfilename)

@@ -19,7 +19,7 @@ def add_header(fitsfile, configfile, outfile):
   hdr.update('CTYPE1', 'RA---TAN')
   hdr.update('CRPIX1', int(Chipsizex/2))
   hdr.update('CRVAL1', Ra)
-  hdr.update('CTYPE2', 'RA---TAN')
+  hdr.update('CTYPE2', 'DEC---TAN')
   hdr.update('CRPIX2', int(Chipsizey/2))
   hdr.update('CRVAL2', Dec)
   hdr.update('CD1_1', 5.555553E-05)         # need fix

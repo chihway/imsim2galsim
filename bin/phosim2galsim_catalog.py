@@ -235,8 +235,9 @@ dxchip = (chipsizex+sgapx)*pixelsize*arcsec2deg
 dychip = (chipsizey+sgapy)*pixelsize*arcsec2deg
 dxraft = (rgapx)*pixelsize*arcsec2deg
 dyraft = (rgapy)*pixelsize*arcsec2deg
-center=findchipcenter(pointingra, pointingdec, rotationangle,  
-         rx, ry, sx, sy, dxchip, dychip, dxraft, dyraft)
+center=findchipcenter(pointingra, pointingdec, -1*rotationangle,  
+         rx, ry, sx, sy, dxchip, dychip, dxraft, dyraft) 
+                             # rotation angle goes the other direction!
 chipcenterx=center[0]        # chip center x in deg
 chipcentery=center[1]        # chip center y in deg
 #print center

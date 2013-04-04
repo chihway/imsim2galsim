@@ -50,7 +50,7 @@ logger.info('Galaxy catalog file: '+str(galfilename))
 logger.info('Output file: '+str(outfilename))
 
 logger.info('Get observation and instrument-specific parameters from the config file...')
-Id, Airmass, Rot, Ra, Dec, Seed, Filter, Atmseeing, Sky, Rx, Ry, Sx, Sy, Saturation, Chipsizex, Chipsizey, Pixelsize, Optpsfsize = read_config.read_configrea(configfilename)
+Id, Airmass, Rot, Ra, Dec, Seed, Filter, Atmseeing, Sky, Rx, Ry, Sx, Sy, Saturation, Chipsizex, Chipsizey, Pixelsize, Optpsfsize, Exptime = read_config.read_config(configfilename)
 
 logger.info('Defining image...')
 full_image = galsim.ImageF(Chipsizex, Chipsizey)
@@ -114,7 +114,7 @@ for k in range(len(gallines)):
   if (photon==0):
     stamp = final.draw(dx=Pixelsize)
   if (photon==1):
-    stamp=final.drawShoot(n_photons=galFlux, dx=Pixelsize)[0]
+    stamp=final.drawShoot(n_photons=galFlux, dx=Pixelsize)
 
   # Recenter the stamp at the desired position:
   stamp.setCenter(ix,iy)
@@ -152,9 +152,9 @@ for k in range(len(starlines)):
 
   # Draw the stamp image
   if (photon==0):
-    stamp = final.draw(dx=Pixelsize)
+    stamp = final.draw(wmult=1, dx=Pixelsize)
   if (photon==1):
-    stamp=final.drawShoot(n_photons=star, dx=Pixelsize)[0]
+    stamp=final.drawShoot(wmult=1, n_photons=star, dx=Pixelsize)
   
   # Recenter the stamp at the desired position:
   stamp.setCenter(ix,iy)

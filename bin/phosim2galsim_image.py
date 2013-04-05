@@ -89,7 +89,7 @@ for k in range(len(gallines)):
   galFlux=int(float(parameters[5])*25)
   galA=float(parameters[6])
   galB=float(parameters[7])
-  galPhi=float(parameters[8])+numpy.pi/2+float(Rot/180.0*numpy.pi)  
+  galPhi=float(parameters[8])+numpy.pi/2
   # this will change in the next phosim version!!
   galN=float(parameters[9])
   re=(galA*galB)**0.5
@@ -113,9 +113,9 @@ for k in range(len(gallines)):
 
   # Draw the stamp image
   if (photon==0):
-    stamp = final.draw(dx=Pixelsize)
+    stamp = final.draw(wmult=5, dx=Pixelsize)
   if (photon==1):
-    stamp=final.drawShoot(n_photons=galFlux, dx=Pixelsize)
+    stamp=final.drawShoot(wmult=5, n_photons=galFlux, dx=Pixelsize)
 
   # Recenter the stamp at the desired position:
   stamp.setCenter(ix,iy)

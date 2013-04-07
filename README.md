@@ -67,26 +67,42 @@ properties and is compatable with DM.
 What should be in a configuration file?
 =====================================================
 
-A configuration file should look like this (without 
-the comments after '#'):
+A configuration file should look like this (without the comments after '#'):
  
 Id             9999     # id for that exposure      
+
 Airmass        1.0      # airmass                   
-Rot            0        # rotation angle (deg) of camer
+
+Rot            0        # rotation angle (deg) of camera
+
 Ra             0        # RA pointing
+
 Dec            0        # DEC pointing
+
 Seed           9999     # seed for noise
+
 Filter         2        # filter id (ugrizy)
+
 Atmseeing      0.6      # atmospheric seeing (") at zenith
+
 Sky            0        # sky counts per pixel
+
 Rx             2        # raft x-coordinate
+
 Ry             2        # raft y-coordinate
+
 Sx             1        # sensor x-coordinate
+
 Sy             1        # sensor y-coordinate 
+
 Saturation     1000000  # full well (e)
+
 Chipsizex      4072     # x-direction pixels
+
 Chipsizey      4072     # y-direction pixels
+
 Pixelsize      0.2      # arcsec/pixel
+
 Optpsfsize     0.35     # optical PSF FWHM (") at zenith
 
 NB: default values (as listed) will be filled in if not provided in the config file

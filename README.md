@@ -5,16 +5,20 @@ Code to generate GalSim images that fit in the LSST simulation framework.
 This includes two projects:
 
 1. Taking LSST PhoSim input gatalogs and generate approximately similar images.
- - Not sure how useful this is. You get the images faster than PhoSim, but much less accurate.
- - The one good thing is it shold be easy to put through DM.
+
+  a. Not sure how useful this is. You get the images faster than PhoSim, but much less accurate. Can choose to switch on or off the magnitude conversion code.
+
+  b. The one good thing is it shold be easy to put through DM.
 
 2. Query from LSST ImSim databse and generate expected images. 
- - This has the advantage that the magnitudes are more accurate and does not need to go through the many intermediate steps. 
- - But this involves the database and (possibly) the galaxy generation code. Need to investigate if it's worth the trouble.
+
+  a. This has the advantage that the magnitudes are more accurate and does not need to go through the many intermediate steps. 
+
+  b. But this involves the database and (possibly) the galaxy generation code. Need to investigate if it's worth the trouble.
 
 Both of these should be tested and can run through the LSST Data Management code.
 
-This provides one (or probably two) parallel stream of simulation that can be done faster but with lower fidelity. Depending on the purpose of these simulations, one 
+This provides parallel streams of simulation that can be done faster but with lower fidelity. Depending on the purpose of these simulations, one 
 can choose from using the original ImSim/PhoSim framework or digress to using the GalSim framework here.
 
 ============================================================
@@ -61,6 +65,13 @@ properties and is compatable with DM.
 
 ------------------------------------------------------------
 * I have the ImSim database setup and want to go from there.
+
+1. Query some patch of sky ~ LSST fov
+
+2. Select some observing parameters
+
+3. Make chip-size images (or full-field image?)
+
 
 
 =====================================================

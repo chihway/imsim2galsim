@@ -5,22 +5,17 @@ Code to generate GalSim images that fit in the LSST simulation framework.
 This includes two projects:
 
 1. Taking LSST PhoSim input gatalogs and generate approximately similar images.
-- Not sure how useful this is. You get the images faster than PhoSim, but much 
-less accurate.
-- The one good thing is it shold be easy to put through DM.
+ - Not sure how useful this is. You get the images faster than PhoSim, but much less accurate.
+ - The one good thing is it shold be easy to put through DM.
 
 2. Query from LSST ImSim databse and generate expected images. 
-- This has the advantage that the magnitudes are more accurate and does not need 
-to go through the many intermediate steps. 
-- But this involves the database and (possibly) the galaxy generation code. Need 
-to investigate if it's worth the trouble.
+ - This has the advantage that the magnitudes are more accurate and does not need to go through the many intermediate steps. 
+ - But this involves the database and (possibly) the galaxy generation code. Need to investigate if it's worth the trouble.
 
 Both of these should be tested and can run through the LSST Data Management code.
 
-This provides one (or probably two) parallel stream of simulation that can be done 
-faster but with lower fidelity. Depending on the purpose of these simulations, one 
-can choose from using the original ImSim/PhoSim framework or digress to using the 
-GalSim framework here.
+This provides one (or probably two) parallel stream of simulation that can be done faster but with lower fidelity. Depending on the purpose of these simulations, one 
+can choose from using the original ImSim/PhoSim framework or digress to using the GalSim framework here.
 
 ============================================================
 What is in this repo
@@ -94,5 +89,4 @@ Chipsizey      4072     # y-direction pixels
 Pixelsize      0.2      # arcsec/pixel
 Optpsfsize     0.35     # optical PSF FWHM (") at zenith
 
-NB: default values (as listed) will be filled in if not 
-provided in the config file
+NB: default values (as listed) will be filled in if not provided in the config file

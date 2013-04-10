@@ -25,14 +25,22 @@ can choose from using the original ImSim/PhoSim framework or digress to using th
 What is in this repo
 ============================================================
 
-bin/ python scripts that do the work
+bin/  ==> python scripts that do the work
 - phosim2galsim_catalog.py
 - phosim2galsim_image.py
+- read_config.py
+- add_LSST_DM_header.py
+- magNorm2LSSTFlux.py
 
-data/ input catalogs (from PhoSim)
-- raytrace
+data/  ==> 
 
-docs/ 
+example/  ==> demo of how these things run
+
+output/  ==> by default where you put your output
+
+work/  ==> by default where work and intermediate files are at
+
+docs/  ==> documents 
 
 ============================================================
 Pre-requisite

@@ -38,8 +38,14 @@ docs/
 Pre-requisite
 ============================================================
 
-GalSim, ImSim, and DM stack are all installed
-use setup script to locate all of these
+Install and setup:
+- GalSim
+
+Will be useful to have:
+- ImSim
+- DM stack 
+
+Setup script in principle locates all of these before running.
 
 ============================================================
 How to run
@@ -51,6 +57,10 @@ There are several ways to go from here.
 * I just want to generate some image that has roughly the LSST sky 
 properties and is compatable with DM.
 
+1. Sample the galaxy population and generate a catalog
+
+2. Generate GalSim images with catalog from 1.
+
 
 ------------------------------------------------------------
 * I am familiar with PhoSim and have the PhoSim instant catalogs handy.
@@ -58,10 +68,10 @@ properties and is compatable with DM.
 1. Trim the PhoSim instant catalog into chip-size images.
 
 2. Transform a PhoSim trimmed catalog into something GalSim understands
-   phosim2galsim_catalog.py [] []
+   phosim2galsim_catalog.py [ input ImSim catalog ] [ output config file ] [ output glaxy catalog ] [ output star catalog ]
 
 3. Generate GalSim image with the catalog from 2. 
-   phosim2galsim_image.py [] []
+   phosim2galsim_image.py [ input config file ] [ input star file ] [ input galaxy file ] [ output temp fits file ] [ output final fits file ] [ whether to use approximate magnitude conversion ] [ whether to use photon shooting ]
 
 ------------------------------------------------------------
 * I have the ImSim database setup and want to go from there.

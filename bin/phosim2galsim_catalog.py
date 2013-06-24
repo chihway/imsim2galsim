@@ -22,7 +22,7 @@
 # Note: 
 # - This runs a while, mainly due to the magnitude conversion involves 
 # integration of each galaxy SED...
-# - Eliminated objects with flux < ?
+# - Eliminated objects with flux < 1
 # - ok, I know now, I want to convert all SEDs beforhand and store it 
 # a giant file so this program does not need to do the integration!
 # 
@@ -40,7 +40,7 @@ def findchipcenter(ra, dec, rot, rx, ry, sx, sy,
   return (centerx, centery)
 
 def rotate(x,y,theta):
-  " rotate a vector"
+  " rotate an array of vectors"
   x_rot=x*numpy.cos(theta)+y*numpy.sin(theta)
   y_rot=-1*x*numpy.sin(theta)+y*numpy.cos(theta)
   return (x_rot, y_rot)
@@ -63,9 +63,17 @@ if os.path.isfile(outfilename2):
   os.remove(outfilename2)
 if os.path.isfile(outfilename3):
   os.remove(outfilename3)
+if os.path.isfile('temp_star'):
+  os.remove('temp_star')
+if os.path.isfile('temp_gal'):
+  os.remove('temp_gal')
+
 outfile1=open(outfilename1,'a')         
 outfile2=open(outfilename2,'a')
 outfile3=open(outfilename3,'a')
+tempoutfile2=open('temp_gal','a')
+tempoutfile3=open('temp_star','a')
+
 inlines=infile.readlines()
 
 # hardcoded! change as needed
@@ -94,7 +102,7 @@ logging.basicConfig(level=logging.INFO, stream=sys.stdout, format='%(message)s')
 logger = logging.getLogger() 
 
 logger.info("reading in the observing parameters from "+str(infilename))
-logger.info("this may take a while...")
+logger.info("and make two temp catalogs. This may take a while...")
 # first pass going through to grab observation parameters
 for i in range(len(inlines)): 
   if (len(inlines[i].split())>=2):
@@ -183,6 +191,13 @@ for i in range(len(inlines)):
       nsnap=float(inlines[i].split()[1])
       # save parameter for later use
 
+    # makes these files for later use
+    if (inlines[i].split()[0]=='object' and inlines[i].split()[12]=='point'):
+      tempoutfile3.write(inlines[i])
+
+    if (inlines[i].split()[0]=='object' and inlines[i].split()[12]=='sersic2D'):
+      tempoutfile2.write(inlines[i])
+
 sky_count = magNorm2LSSTFlux.magNorm2LSSTFlux(str(skysed), str(filtdir)
   +'total_'+str(Filt[filt])+'.dat', zenith_v, 0.0) * pixelsize**2                 
 # counts per pixels (the counts look low... need checking!)
@@ -244,70 +259,99 @@ chipcenterx=center[0]        # chip center x in deg
 chipcentery=center[1]        # chip center y in deg
 #print center
 
-logger.info("Finish reading observing parameters.")
+logger.info("Finish reading observing parameters and making temp catalogs.")
 outfile1.close()
+tempoutfile2.close()
+tempoutfile3.close()
 
-logger.info("Now get parameters from stars and galaxies...")
+logger.info("Now get parameters from galaxies...")
 # second pass going through to grab object parameters
-for i in range(len(inlines)):
+
+galData=numpy.genfromtxt('temp_gal')
+phosim_id=galData[:,1]
+phosim_ra=galData[:,2]
+phosim_dec=galData[:,3]
+phosim_mag=galData[:,4]
+phosim_z=galData[:,6]
+phosim_kappa=galData[:,7]
+phosim_gamma1=galData[:,8]
+phosim_gamma2=galData[:,9]
+phosim_a=galData[:,13]
+phosim_b=galData[:,14]
+phosim_theta=galData[:,15]
+phosim_n=galData[:,16]
+
+# add rotation (positions and shearing)!!
+logger.info("Rotate and shift position so that image is centerd with chip.")
+galsim_x_norot=(phosim_ra-chipcenterx)*deg2pix   # is this right?
+galsim_y_norot=(phosim_dec-chipcentery)*deg2pix
+#print galsim_x_norot, galsim_y_norot
+galsim_coor=rotate(galsim_x_norot, galsim_y_norot, rotationangle*deg2rad)
+galsim_x= galsim_coor[0]+(chipsizex/2)
+galsim_y= galsim_coor[1]+(chipsizey/2)
+#print galsim_x, galsim_y
+
+# shear is defined in telescope coordinate, so this needs to be rotated as well
+logger.info("Rotate shear as well.")
+galsim_kappa=phosim_kappa
+galsim_gamma=rotateshear(phosim_gamma1, phosim_gamma2, -1*rotationangle*deg2rad) # not tested yet
+galsim_gamma1=galsim_gamma[0]
+galsim_gamma2=galsim_gamma[1]
+
+tempfile=open('temp_gal','r')
+tempinlines=tempfile.readlines()
+tempfile.close()
+for i in range(len(phosim_id)):
 #for i in range(3000):
-  if (len(inlines[i].split())>=2):
-    outfile2=open(outfilename2,'a')
-    outfile3=open(outfilename3,'a')
+  sed=str(tempinlines[i].split()[5])
+  if (galsim_x[i]>=0 and galsim_x[i]<=chipsizex and galsim_y[i]>=0 and galsim_y[i]<=chipsizey):
+    os.system('cp '+str(seddir)+str(sed)+' tempspec_R'+str(rx)+str(ry)+'_S'+str(sx)+str(sy)+'.gz')
+    os.system('gunzip tempspec_R'+str(rx)+str(ry)+'_S'+str(sx)+str(sy)+'.gz')
+    galsim_flux=magNorm2LSSTFlux.magNorm2LSSTFlux('tempspec_R'+str(rx)+str(ry)+'_S'+str(sx)+str(sy), 
+            str(filtdir)+'total_'+str(Filt[filt])+'.dat', phosim_mag[i], phosim_z[i]) * pixelsize**2   
+    os.system('rm -f tempspec_R'+str(rx)+str(ry)+'_S'+str(sx)+str(sy))
+    if (galsim_flux>1):
+      string=str(phosim_id[i])+'\t'+'Sersic'+'\t'+str(galsim_x[i])+'\t'+str(galsim_y[i])+'\t'+str(phosim_z[i])+'\t'+str(galsim_flux)+'\t'+str(phosim_a[i]) +'\t'+str(phosim_b[i])+'\t'+str(phosim_theta[i]-(rotationangle*deg2rad))+'\t'+str(phosim_n[i])+'\t'+str(galsim_kappa[i])+'\t'+str(galsim_gamma1[i])+'\t'+str(galsim_gamma2[i])+'\n'
+      # note rotation angle, units change in the next phosim version
+      # print string
+      outfile2.write(string)
+outfile2.close()   
 
-    if (inlines[i].split()[0]=='object'):
-      phosim_id=float(inlines[i].split()[1])
-      phosim_ra=float(inlines[i].split()[2])
-      phosim_dec=float(inlines[i].split()[3])
-      phosim_mag=float(inlines[i].split()[4])
-      phosim_sed=inlines[i].split()[5]
-      phosim_z=float(inlines[i].split()[6])
-      phosim_kappa=float(inlines[i].split()[7])
-      phosim_gamma1=float(inlines[i].split()[8])
-      phosim_gamma2=float(inlines[i].split()[9])
+logger.info("Now get parameters from stars...")
+# second pass going through to grab object parameters
 
-      # add rotation (positions and shearing)!!
-      logger.debug("Rotate and shift position so that image is centerd with chip.")
-      galsim_x_norot=(phosim_ra-chipcenterx)*deg2pix   # is this right?
-      galsim_y_norot=(phosim_dec-chipcentery)*deg2pix
-      #print galsim_x_norot, galsim_y_norot
-      galsim_coor=rotate(galsim_x_norot, galsim_y_norot, rotationangle*deg2rad)
-      galsim_x= galsim_coor[0]+(chipsizex/2)
-      galsim_y= galsim_coor[1]+(chipsizey/2)
-      #print galsim_x, galsim_y
-        
-      if (galsim_x>=0 and galsim_x<=chipsizex and galsim_y>=0 and galsim_y<=chipsizey):
-        os.system('cp '+str(seddir)+str(phosim_sed)+' tempspec_R'+str(rx)+str(ry)+'_S'+str(sx)+str(sy)+'.gz')
-        os.system('gunzip tempspec_R'+str(rx)+str(ry)+'_S'+str(sx)+str(sy)+'.gz')
-        galsim_flux=magNorm2LSSTFlux.magNorm2LSSTFlux('tempspec_R'+str(rx)+str(ry)+'_S'+str(sx)+str(sy), 
-                   str(filtdir)+'total_'+str(Filt[filt])+'.dat', phosim_mag, phosim_z) * pixelsize**2   
-        os.system('rm -f tempspec_R'+str(rx)+str(ry)+'_S'+str(sx)+str(sy))
+starData=numpy.genfromtxt('temp_star')
+phosim_id=starData[:,1]
+phosim_ra=starData[:,2]
+phosim_dec=starData[:,3]
+phosim_mag=starData[:,4]
+phosim_z=starData[:,6]
 
-        if ( str(inlines[i].split()[12]) == 'sersic2D' and galsim_flux>1):
-          # shear is defined in telescope coordinate, so this needs to be rotated as well
-          logger.debug("Rotate shear as well.")
-          galsim_kappa=phosim_kappa
-          galsim_gamma=rotateshear(phosim_gamma1, phosim_gamma2, -1*rotationangle*deg2rad) # not tested yet
-          galsim_gamma1=galsim_gamma[0]
-          galsim_gamma2=galsim_gamma[1]
+# add rotation (positions and shearing)!!
+logger.debug("Rotate and shift position so that image is centerd with chip.")
+galsim_x_norot=(phosim_ra-chipcenterx)*deg2pix   # is this right?
+galsim_y_norot=(phosim_dec-chipcentery)*deg2pix
+#print galsim_x_norot, galsim_y_norot
+galsim_coor=rotate(galsim_x_norot, galsim_y_norot, rotationangle*deg2rad)
+galsim_x= galsim_coor[0]+(chipsizex/2)
+galsim_y= galsim_coor[1]+(chipsizey/2)
+#print galsim_x, galsim_y
 
-          phosim_a=float(inlines[i].split()[13])
-          phosim_b=float(inlines[i].split()[14])
-          phosim_theta=float(inlines[i].split()[15])
-          phosim_n=float(inlines[i].split()[16])
-          string=str(phosim_id)+'\t'+'Sersic'+'\t'+str(galsim_x)+'\t'+str(galsim_y) \
-                +'\t'+str(phosim_z)+'\t'+str(galsim_flux)+'\t'+str(phosim_a)        \
-                +'\t'+str(phosim_b)+'\t'+str(phosim_theta-(rotationangle*deg2rad))+'\t'+str(phosim_n)       \
-                +'\t'+str(galsim_kappa)+'\t'+str(galsim_gamma1)+'\t'+str(galsim_gamma2)+'\n'
-          # note rotation angle, units change in the next phosim version
-          # print string
-          outfile2.write(string)
-   
-        if ( str(inlines[i].split()[12]) == 'point' and galsim_flux>1):
-          string=str(phosim_id)+'\t'+'Star'+'\t'+str(galsim_x)+'\t'+str(galsim_y) \
+tempfile=open('temp_star','r')
+tempinlines=tempfile.readlines()
+tempfile.close()
+for i in range(len(phosim_id)):
+#for i in range(3000):
+  sed=str(tempinlines[i].split()[5])
+  if (galsim_x[i]>=0 and galsim_x[i]<=chipsizex and galsim_y[i]>=0 and galsim_y[i]<=chipsizey):
+    os.system('cp '+str(seddir)+str(sed)+' tempspec_R'+str(rx)+str(ry)+'_S'+str(sx)+str(sy)+'.gz')
+    os.system('gunzip tempspec_R'+str(rx)+str(ry)+'_S'+str(sx)+str(sy)+'.gz')
+    galsim_flux=magNorm2LSSTFlux.magNorm2LSSTFlux('tempspec_R'+str(rx)+str(ry)+'_S'+str(sx)+str(sy), 
+            str(filtdir)+'total_'+str(Filt[filt])+'.dat', phosim_mag[i], phosim_z[i]) * pixelsize**2   
+    os.system('rm -f tempspec_R'+str(rx)+str(ry)+'_S'+str(sx)+str(sy))
+    if (galsim_flux>1):
+      string=str(phosim_id[i])+'\t'+'Star'+'\t'+str(galsim_x[i])+'\t'+str(galsim_y[i]) \
                 +'\t'+str(galsim_flux)+'\n'
           #print string
-          outfile3.write(string)
- 
-    outfile2.close()
-    outfile3.close()
+      outfile3.write(string)
+outfile3.close()

@@ -12,7 +12,7 @@
 #
 # Usage:
 #    phosim2galsim_image.py [config file] [star file] 
-#                    [galaxy file] [output file] [photon-shooting mode]
+#             [galaxy file] [temp output file] [output file] [photon-shooting mode]
 #
 # Required:
 # - configuration file and/or defult_config

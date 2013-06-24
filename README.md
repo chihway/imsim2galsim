@@ -5,16 +5,16 @@ imsim2galsim
 Code to generate GalSim images that fit in the LSST simulation framework. 
 This includes two projects:
 
-1. Taking LSST PhoSim input catalogs and generate approximately similar images.
+1. Taking LSST ImSim input catalogs and generate approximately similar images.
 
 2. Running these GalSim images through LSST DM. 
 
-The ultimate goal is to compare the output catalogs of GalSim and PhoSim. If 
+The ultimate goal is to compare the output catalogs of GalSim and ImSim. If 
 they look sufficiently close, we can use the GalSim line to do analyses. In 
 principle this would save time...
 
 These simulations will be faster but with lower fidelity. Depending on the purpose, 
-one can choose from using the original ImSim/PhoSim framework or digress to using 
+one can choose from using the original ImSim framework or digress to using 
 the GalSim framework here.
 
 ============================================================
@@ -27,8 +27,9 @@ bin/  ==> python scripts that do the work
 - read_config.py
 - add_LSST_DM_header.py
 - magNorm2LSSTFlux.py
+- phosim_trimcat
 
-input/  ==> the phosim input catalogs and lookup table for mag conversion
+input/  ==> the imsim input catalogs and lookup table for mag conversion
 - raytrace_XXX
 - mag2flux_star.dat
 - mag2flux_gal.dat
@@ -37,27 +38,41 @@ example/  ==> demo of how these things run, instructions in README
 
 NB1: Recommend generate work/ directory to run things and intermediate files.
 
-NB2: The full framework starts of the trimmed, single-chip phosim catalogs.
-See below 'Pre-requisite/phosim' for how these can be generated from scratch.
+NB2: The full framework starts of the trimmed, single-chip imsim catalogs.
+See below 'Pre-requisite/ImSim' for how these can be generated from scratch.
 
 ============================================================
 Pre-requisite
 ============================================================
 
-* GalSim
+* GalSim (https://github.com/GalSim-developers/GalSim)
+See github site for all the details about installation etc.
 
-* PhoSim
+* ImSim (https://dev.lsstcorp.org/cgit/LSST/sims/phosim.git/)
+Only really the beginning part of the simulation code is needed for the 
+purpose of this project, but you should install the full ImSim since 
+everything seems to be sort of integrated...
 
+If you also download all the SEDs, you can run the magnitude conversion code 
+yourself. Otherwise use the lookup table provided in input/.
 
+Once you have ImSim set up. You can run:
+cd YourImsimInstallation/work
+../phosim TheCatalogYouWantToRun
 
-Install and setup:
-- GalSim
+This will produce a bunch of images and at the same time kill all the 
+intermediate files, which is kind of a shame…
 
-Will be useful to have:
-- ImSim
-- DM stack 
+Alternatively, you can use the scripts in 'phosim_trimcat' instead of 
+'phosim' to generate the trimmed catalogs (with file name 'raytrace_XXXX') that 
+will become the input to the main scripts in this project.
 
-Setup script in principle locates all of these before running.
+* LSST DM (https://dev.lsstcorp.org/trac/wiki/Installing/Winter2013#StepbystepinstructionsforLinux)
+Here's a useful instruction for how to install it at SLAC:
+http://kipac.stanford.edu/collab/research/lensing/slac/HowTo/imsimDMpipeline
+But note that this can be extremely difficult if you are doing it elsewhere. 
+
+NB: check inside scripts to swap out where all these codes are located.
 
 ============================================================
 How to run

@@ -1,25 +1,21 @@
+
 imsim2galsim
 ============
 
 Code to generate GalSim images that fit in the LSST simulation framework. 
 This includes two projects:
 
-1. Taking LSST PhoSim input gatalogs and generate approximately similar images.
+1. Taking LSST PhoSim input catalogs and generate approximately similar images.
 
-  a. Not sure how useful this is. You get the images faster than PhoSim, but much less accurate. Can choose to switch on or off the magnitude conversion code.
+2. Running these GalSim images through LSST DM. 
 
-  b. The one good thing is it shold be easy to put through DM.
+The ultimate goal is to compare the output catalogs of GalSim and PhoSim. If 
+they look sufficiently close, we can use the GalSim line to do analyses. In 
+principle this would save time...
 
-2. Query from LSST ImSim databse and generate expected images. 
-
-  a. This has the advantage that the magnitudes are more accurate and does not need to go through the many intermediate steps. 
-
-  b. But this involves the database and (possibly) the galaxy generation code. Need to investigate if it's worth the trouble.
-
-Both of these should be tested and can run through the LSST Data Management code.
-
-This provides parallel streams of simulation that can be done faster but with lower fidelity. Depending on the purpose of these simulations, one 
-can choose from using the original ImSim/PhoSim framework or digress to using the GalSim framework here.
+These simulations will be faster but with lower fidelity. Depending on the purpose, 
+one can choose from using the original ImSim/PhoSim framework or digress to using 
+the GalSim framework here.
 
 ============================================================
 What is in this repo
@@ -32,19 +28,27 @@ bin/  ==> python scripts that do the work
 - add_LSST_DM_header.py
 - magNorm2LSSTFlux.py
 
-data/  ==> 
+input/  ==> the phosim input catalogs and lookup table for mag conversion
+- raytrace_XXX
+- mag2flux_star.dat
+- mag2flux_gal.dat
 
-example/  ==> demo of how these things run
+example/  ==> demo of how these things run, instructions in README
 
-output/  ==> by default where you put your output
+NB1: Recommend generate work/ directory to run things and intermediate files.
 
-work/  ==> by default where work and intermediate files are at
-
-docs/  ==> documents 
+NB2: The full framework starts of the trimmed, single-chip phosim catalogs.
+See below 'Pre-requisite/phosim' for how these can be generated from scratch.
 
 ============================================================
 Pre-requisite
 ============================================================
+
+* GalSim
+
+* PhoSim
+
+
 
 Install and setup:
 - GalSim

@@ -1,0 +1,58 @@
+
+This folder contains a complete example for generating one LSST chip 
+using galsim with phosim input catalog.
+
+===========================================================
+The files are:
+
+chip = 'R22_S11'    center chip
+chip = 'R33_S11'    off-axis chip
+
+raytrace_88673590_${chip}_E000.pars    phosim input file
+eimage_88673590_${chip}_E000.fits    phosim output fits file
+
+config_${chip}    config file output from phosim2galsim_catalog.py
+star_${chip}    star catalog output from phosim2galsim_catalog.py
+gal_${chip}    galaxy catalog output from phosim2galsim_catalog.py
+temp_${chip}.fits    temporary galsim output fits file without header
+${chip}.fits    final galsim output fits file
+
+===========================================================
+
+To generate ${chip}.fits, which is the final desired product, 
+follow these steps:
+
+i) make sure you have phosim set up and the following lines are 
+replaced by what you have in your setup:
+
+skysed='/nfs/slac/g/ki/ki06/lsst/chihway/phosim-v-3.2/data/sky/darksky_sed.txt'
+filtdir='/nfs/slac/g/ki/ki06/lsst/chihway/phosim-v-3.2/data/lsst/'
+seddir='/nfs/slac/g/ki/ki06/lsst/chihway/phosim-v-3.2/data/SEDs/'
+galseddir='/nfs/slac/g/ki/ki06/lsst/chihway/phosim-v-3.2/data/SEDs_unzip/'
+
+ii) make sure you have the scripts in the bin/ directory and the 
+input phosim catalog in the input/ directory:
+
+input/raytrace_88673590_${chip}_E000.pars
+bin/add_LSST_DM_header.py
+    magNorm2LSSTFlux.py
+    phosim2galsim_catalog.py
+    phosim2galsim_image.py*
+    read_config.py
+
+iii) run to make intermediate catalog (this is slow!), assuming 
+you are in work/ directory:
+
+../bin/phosim2galsim_catalog.py ../input/raytrace_88673590_${chip}_E000.pars  
+                                      Config_${chip} Gal_${chip} Star_${chip} 
+
+compare output with config_${chip}, gal_${chip}, star_${chip}
+
+iv) run to make galsim image, assuming you are in work/ directory:
+
+../bin/phosim2galsim_image.py Config_${chip} Star_${chip} Gal_${chip}
+                              Temp_${chip}.fits Final_${chip}.fits 1
+
+compare output with ${chip}.fits
+
+===========================================================

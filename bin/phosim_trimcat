@@ -1,0 +1,628 @@
+#!/usr/bin/env python
+# ------------------------------------------------
+# GENERAL SCRIPT FOR A FULL FOCAL PLANE SIMULATION
+# ------------------------------------------------
+import os                         #Operating system library
+import subprocess
+import sys, glob, optparse, shutil
+import multiprocessing
+
+# ****************************************
+# First we define a few functions
+# ***************************************
+def usage():
+     script=os.path.basename(__file__)
+     os.system(imsimsDir+'/'+script+' x --help')
+
+# ********************************************************
+# Use the runProgram function as the standard way to run one of the lsst 
+# programs. runProgram uses subprocess.call instead of os.system (which is 
+# deprecated), but more importantly, it checks the return code of the program 
+# that's called and raises an exception if it is non-zero.  This way the whole
+# script stops as soon as an error is encountered instead of
+# proceeding with invalid input.
+# ********************************************************
+def runProgram(command, binDir=None, argstring=None):
+    myCommand = command
+    if binDir is not None:
+        myCommand = os.path.join(binDir, command)
+    if argstring is not None:
+        myCommand += argstring
+    if subprocess.call(myCommand, shell=True) != 0:
+        raise RuntimeError("Error running %s" % myCommand)
+
+#********************************************************************
+# This function will delete files if they exist, and if they do not,
+# it will catch the OSError exception and silently proceed.  Using
+# this function to encapsulate this operation also allows one to
+# disable file deletion in a single location (e.g., for debugging
+# purposes), rather than searching and replacing throughout the code.
+#********************************************************************
+def remove_file(filename):
+    try:
+        os.remove(filename)
+    except OSError:
+        pass
+
+# ***************************************************************
+# jobchip does all the workcat
+# ***************************************************************
+def jobchip(fid,cid,eid,opt,filt):
+    segfile = os.path.join(dataDir, opt.instrument, 'segmentation.txt')
+    runProgram("raytrace < raytrace_"+fid+".pars", binDir)
+    #runProgram("gzip -f eimage_"+fid+".fits")
+    #remove_file('raytrace_'+fid+'.pars')
+
+    if opt.e2adc==1:
+       runProgram("e2adc < e2adc_"+fid+".pars", binDir)
+       remove_file('e2adc_'+fid+'.pars')
+       
+       for line in open(segfile):
+           aid=line.split()[0]   
+           if cid in line and aid != cid:
+               rawImage='imsim_'+observationID+'_'+aid+'_'+eid+'.fits'
+               runProgram("gzip -f "+rawImage)
+       
+               rawImageRename=outputDir+'/imsim_'+observationID+'_f'+filt+'_'+aid+'_'+eid+'.fits.gz'
+               shutil.move(rawImage+'.gz',rawImageRename)
+
+    eImage='eimage_'+observationID+'_'+cid+'_'+eid+'.fits.gz'
+    eImageRename=outputDir+'/eimage_'+observationID+'_f'+filt+'_'+cid+'_'+eid+'.fits.gz'
+    shutil.move(eImage,eImageRename)
+
+# *******************************************************
+# checkPaths and assignPath functions handle parsing and checking
+#  of various directories (outputDir, workDir, binDir, dataDir, instrDir, 
+#  extraCommands).  assignPath and checkPath both need imsimsDir
+# ******************************************************* 
+
+def assignPath(path):
+    full_path = imsimsDir + '/' + path   #This should handle relative paths
+    if os.path.exists(full_path):
+        return full_path
+    elif os.path.exists(path):
+        return path
+    raise RuntimeError('%s does not exist.' % path)
+
+def checkPaths(opt):
+    paths = [assignPath(eval('opt.%s' % x)) for x in        #Make sure dataDir is 4th in this list
+             'outputDir workDir binDir dataDir'.split()]    #see use of path[3] below
+
+   # Was the extraCommands file (has whatever is different from the default) file specified 
+    extraCommands = 'none'
+    if opt.extraCommands != 'none':
+        if os.path.isfile(imsimsDir+'/'+opt.extraCommands):
+            extraCommands = imsimsDir+ '/' + opt.extraCommands
+        elif os.path.isfile(opt.extraCommands):
+            extraCommands = opt.extraCommands
+        else:
+            raise RuntimeError('%s is not a file.' % opt.extraCommands)
+        
+    #Now find the intsrument directory
+    DataDir=paths[3]   
+    instrDir = os.path.join(DataDir, opt.instrument)
+    if not os.path.exists(instrDir):
+        raise RuntimeError('%s does not exist.' % instrDir)
+    
+    paths.extend((extraCommands, instrDir))
+    return tuple(paths)
+
+def writeSubmit(job,jobName,universe,fid='none'):
+     submitfile=open(jobName+'.submit','w')
+     submitfile.write('executable = %s/%s\n' % (binDir,job))  
+     submitfile.write('initialdir = %s\n' % workDir)
+     submitfile.write('Universe = %s\n' % universe) 
+     submitfile.write('Input = %s.pars\n' % jobName)
+     submitfile.write('Log = logs/log_%s.log\n' %jobName)
+     submitfile.write('Output = output/out_%s.out\n' %jobName)
+     submitfile.write('Error = errors/error_%s.error\n' %jobName)
+     if universe == 'vanilla':
+         submitfile.write('periodic_release=true\n')
+         submitfile.write('should_transfer_files = YES\n')
+     else:
+         submitfile.write('should_transfer_files = IF_NEEDED\n')
+     submitfile.write('when_to_transfer_output = ON_EXIT\n')
+     submitfile.write('notification = NEVER\n')
+  
+     if job == 'raytrace':
+         for line in open(imsimsDir+'/condor/raytrace_submit_file'):
+              if "datadir" in line:
+                  submitfile.write(line.replace('datadir',dataDir))
+              elif "bindir" in line:
+                  submitfile.write(line.replace('bindir',binDir))
+              elif "instrdir" in line:
+                  submitfile.write(line.replace('instrdir',instrDir))
+              else:
+                  submitfile.write(line)
+     else:
+         if job == 'trim':
+             submitfile.write('transfer_input_files =  %s/lsst/focalplanelayout.txt' % dataDir)
+             for line in open('catlist_'+observationID+'.pars'):
+                 submitfile.write(', %s' % line.split()[2])      
+             submitfile.write('\n') 
+         elif job == 'e2adc':
+             submitfile.write('transfer_input_files = %s/lsst/segmentation.txt, ' % dataDir)
+             submitfile.write('%s/lsst/focalplanelayout.txt, ' % dataDir)   
+             submitfile.write('eimage_%s.fits.gz\n' % fid)
+         submitfile.write('Queue 1\n')
+     
+     submitfile.close()
+ 
+    
+# ***************************************************************************
+
+
+# ------------------------------------------------
+# GENERAL SCRIPT FOR A FULL FOCAL PLANE SIMULATION
+# This is where we start!
+# ------------------------------------------------
+imsimsDir=os.getcwd()
+
+
+parser = optparse.OptionParser(usage='%prog instance_catalog [<arg1> <arg2> ...]')
+parser.add_option('-c','--command',dest="extraCommands",default="none")
+parser.add_option('-p','--proc',dest="numproc",default=1,type="int")
+parser.add_option('-o','--output',dest="outputDir",default=imsimsDir+'/output')
+parser.add_option('-w','--work',dest="workDir",default=imsimsDir+'/work')
+parser.add_option('-b','--bin',dest="binDir",default=imsimsDir+'/bin')
+parser.add_option('-d','--data',dest="dataDir",default=imsimsDir+'/data')
+parser.add_option('-s','--sensor',dest="sensor",default="all")
+parser.add_option('-i','--instrument',dest="instrument",default="lsst")
+parser.add_option('-g','--grid',dest="grid",default="no")
+parser.add_option('-u','--universe',dest="universe",default="standard")
+parser.add_option('-e','--e2adc',dest="e2adc",default=1,type="int")
+
+if len(sys.argv)<2:
+    usage()
+    sys.exit()
+
+if sys.argv[1] in ('-h', '--help'):
+    usage()
+    sys.exit()
+
+# --------------------------------------------
+# (0) First we just checkout all the arguments and 
+# make sure all requested files and 
+# paths exits before we get down to work
+# --------------------------------------------
+
+# *********************************************************************
+# The instanceCatalog file may have some (or all) of the object description lines (stars etc), 
+# some simulation specifications (length of run, seeds etc), some specs for the Optics
+# (filter ie. optics_ telescope description file, and some sky specs and some other misc
+# stuff.
+# **********************************************************************
+instanceCatalog=sys.argv[1]
+
+
+opt, remainder = parser.parse_args(sys.argv[2:]) #parse_args returns a pair of values
+
+# *********************************************************************
+#Check the paths and fill the directory paths
+# *********************************************************************
+outputDir, workDir, binDir, dataDir, extraCommands, instrDir = checkPaths(opt)
+
+
+
+   
+# --------------------------------------------
+# 1)  FULL FIELD INSTANCE CATALOG & OPSIM PARS
+# --------------------------------------------
+
+# ******************************************************
+# We have 2 "instance" catalog files. First we load the deault one and 
+# then the user specified file. Commands/settings  specified in the second will 
+# override those in the default (since it was read in after, order is 
+# thus important)
+# These files have the "telescope operator control" types of settings, sort of.
+# The user instance file may also have some "object" specifications
+# *******************************************************
+defaultCatalog=open("default_instcat").readlines()     #This file is in phosim.
+userCatalog=open(instanceCatalog).readlines()   #user specified file, includes objects
+for line in defaultCatalog+userCatalog:
+    lstr=line.split()                        #2 strings each line of these files
+    if "Opsim_obshistid" in line:	     #save away all the settings of interest
+        observationID=lstr[1]			     
+    elif "Opsim_moonra" in line:
+        moonra=lstr[1]
+    elif "Opsim_moondec" in line:
+        moondec=lstr[1]  
+    elif "Opsim_sunalt" in line:
+        solaralt=lstr[1]
+    elif "Opsim_moonalt" in line:
+        moonalt=lstr[1]
+    elif "Opsim_dist2moon" in line:
+        moondist=lstr[1]
+    elif "Opsim_moonphase" in line:
+        phaseang=lstr[1]
+    elif "Opsim_expmjd" in line:
+        tai=lstr[1]
+    elif "Opsim_rawseeing" in line:
+        constrainseeing=lstr[1]
+    elif "Opsim_rottelpos" in line:
+        spiderangle=lstr[1]
+    elif "Unrefracted_Azimuth" in line:
+        azimuth=lstr[1]
+    elif "Unrefracted_Altitude" in line:
+        altitude=lstr[1]
+    elif "Opsim_rotskypos" in line:
+        rotationangle=lstr[1]
+    elif "Unrefracted_RA" in line:
+        pointingra=lstr[1]
+    elif "Unrefracted_Dec" in line:
+        pointingdec=lstr[1]
+    elif "SIM_SEED" in line:
+        obsseed=lstr[1]
+    elif "Slalib_date" in line:
+        monthnum=lstr[1].split('/')[1]
+    elif "Opsim_filter" in line:
+        filt=lstr[1]
+    elif "SIM_VISTIME" in line:
+        vistime=float(lstr[1]) 
+    elif "SIM_NSNAP" in line:
+        nsnap=int(float(lstr[1]))
+    elif "SIM_MINSOURCE" in line:
+        minNumSources=int(float(lstr[1]))
+    elif "SIM_CAMCONFIG" in line:
+        camconfig=int(float(lstr[1]))
+    elif "SIM_TELCONFIG" in line:
+        telconfig=int(float(lstr[1]))
+    elif "SIM_TEMPERATURE" in line:
+        temperature=lstr[1]
+    elif "SIM_TEMPVAR" in line:
+        tempvar=lstr[1]
+    elif "SIM_ALTVAR" in line:
+        altvar=lstr[1]
+    elif "SIM_CONTROL" in line:
+        control=lstr[1] 
+    elif "SIM_ACTUATOR" in line:
+        actuator=line.split("ACTUATOR ")[1] 
+ 
+#If we have some extra commands in the "extraCommands" file,
+#check it for ... "extraid",  which is an extra ID number, and
+#add it to our observationID value which we got from the instance files.
+if extraCommands != 'none':
+    for line in open(extraCommands):
+        if "extraid" in line:
+            lstr=line.split()
+            extraid=lstr[1] 
+            observationID=observationID+extraid
+
+#condor
+flatdir=1 if opt.grid == 'condor' and opt.universe == 'vanilla' else 0
+if opt.grid == 'condor':
+    dagfile=open(imsimsDir+'/dag_'+observationID+'.dag','w')
+    if not os.path.exists(workDir+'/logs'):
+        os.makedirs(workDir+'/logs')
+    if not os.path.exists(workDir+'/errors'):
+        os.makedirs(workDir+'/errors')
+    if not os.path.exists(workDir+'/output'):
+        os.makedirs(workDir+'/output')
+        
+
+#*************************************************************
+#Move to the work directory for which we will need write access or else this 
+#script will die! Thus the user will probalby have to specifiy this directory
+#on the command line(We should probably check this someday)
+os.chdir(workDir)
+
+#Now that we have the "instance catalog" specs:
+#define, open and start filling the input parameter file.
+# Uses our "observationID" value in its name
+#This file will have all the input parameters to the phosim 
+#program
+
+inputParams='obs_'+observationID+'.pars'
+
+pfile=open(inputParams,'w')
+pfile.write("obshistid %s\n" % observationID)
+pfile.write("moonra %s\n" % moonra)
+pfile.write("moondec %s\n" % moondec)
+pfile.write("solaralt %s\n" % solaralt)
+pfile.write("moonalt %s\n" % moonalt)
+pfile.write("moondist %s\n" % moondist)
+pfile.write("phaseang %s\n" % phaseang)
+pfile.write("tai %s\n" % tai)
+pfile.write("constrainseeing %s\n" % constrainseeing)
+pfile.write("spiderangle %s\n" % spiderangle)
+pfile.write("azimuth %s\n" % azimuth)
+pfile.write("altitude %s\n" % altitude)
+pfile.write("altvar %s\n" % altvar)
+pfile.write("temperature %s\n" % temperature)
+pfile.write("tempvar %s\n" % tempvar)
+pfile.write("actuator %s" % actuator)
+pfile.write("control %s\n" % control)
+pfile.write("rotationangle %s\n" % rotationangle)
+pfile.write("pointingra %s\n" % pointingra)
+pfile.write("pointingdec %s\n" % pointingdec)
+pfile.write("obsseed %s\n" % obsseed)
+pfile.write("monthnum %s\n" % monthnum)
+pfile.write("filter %s\n" % filt)     
+pfile.write("vistime %g\n" % vistime)
+pfile.write("camconfig %s\n"% camconfig) 
+pfile.write("seddir %s/SEDs\n" % dataDir) 
+pfile.write("datadir %s\n" % dataDir)
+pfile.write("instrdir %s\n" % instrDir)
+pfile.write("bindir %s\n" % binDir)
+pfile.write("telconfig %d\n" % telconfig)
+if telconfig<=1:		            #Hard wired specs for domelight (be careful!!)
+   pfile.write("domelight 10000.0\n")
+elif telconfig==2:
+   pfile.write("domelight 18.0\n")
+elif telconfig==3:
+   pfile.write("domelight 23.0\n")
+
+if flatdir==1:
+   pfile.write("flatdir 1\n")
+
+pfile.close()
+
+# ****************************************************************
+#Now we are going to look for all the objects in our simulated sky
+#First we look for objects in the user specified instanceCatalog (userCatalog here, see above)
+#We copy them into another .pars file which will also be fed to phosim program
+# ****************************************************************
+l=0
+objectCatalog1=open('objectcatalog_'+observationID+'_1.pars','w')
+objectCatalog2=open('objectcatalog_'+observationID+'_2.pars','w')
+objectCatalog3=open('objectcatalog_'+observationID+'_3.pars','w')
+objectCatalog4=open('objectcatalog_'+observationID+'_4.pars','w')
+for line in userCatalog:
+    if "object" in line:
+        l+=1
+        if l%4==1:
+            objectCatalog1.write(line)
+        elif l%4==2:
+            objectCatalog2.write(line)
+        elif l%4==3:
+            objectCatalog3.write(line)
+        else:
+            objectCatalog4.write(line)
+objectCatalog1.close()
+objectCatalog2.close()
+objectCatalog3.close()
+objectCatalog4.close()
+
+# CC: why 4 catalogs?
+
+#******************************************************************
+#If we did find some objects to place in the objectCatalog we enter
+#that file name into our catalogList file (It has a list of the object files
+# for our simulation 
+# *****************************************************************
+ncat=0
+catalogList=open('catlist_'+observationID+'.pars','w')
+while l>ncat:
+    catalogList.write("catalog %d objectcatalog_%s_%d.pars\n" % (ncat,observationID,ncat+1)) 
+    ncat+=1    
+    if ncat==4: break
+
+# *******************************************************
+# The user may have specified a sperate object file in the user instance catalog file
+# put it into the catalog list also. We don't check for existance here(shuld we?)
+# *******************************************************
+catDir=instanceCatalog[0:instanceCatalog.find(instanceCatalog.split('/')[-1])]
+for line in userCatalog:
+    if "includeobj" in line:
+        lstr=line.split()
+        catalogList.write("catalog %d %s\n" % (ncat,lstr[1]))
+        ncat+=1 
+catalogList.close()
+
+# ------------------------
+# 2)  ATMOSPHERE GENERATOR
+# ------------------------
+runProgram("atmosphere < "+inputParams, binDir)
+
+# --------------------------------------
+# 3)  INSTRUMENT CONFIGURATION GENERATOR
+# --------------------------------------
+runProgram("instrument < "+inputParams, binDir)
+
+# --------------------------------------
+# 4)  TRIM OBJECT Generation
+# --------------------------------------
+# By chip we need to make object files that are chip specific to save on
+# run time
+
+# Determine which groups of chips we want ot use.
+# see the focalplanelayout.txt file which is in the instrDir
+# comconfig read in as command line argument
+camstr="%03d" % int(float(bin(camconfig).split('b')[1]))
+if camconfig==0:
+    camstr='111'   #This enables all 3 groups
+
+#setup to iterate over the specified sets (may be all ) chips
+fp=open(instrDir+"/focalplanelayout.txt").readlines()
+chipID=[]	#array of chip names Ex: R01_S10 or R11_S11
+runFlag=[]	#Flag to process this chip
+devtype=[]	#chip type; Ex CCD or CMOS
+devvalue=[]	#?
+
+#Go through the focalplanelayout.txt filling up the arrays
+for line in fp:
+    lstr=line.split()
+    addFlag=0
+    if "Group0" in line and camstr[2]=='1': addFlag=1    
+    elif "Group1" in line and camstr[1]=='1': addFlag=1
+    elif "Group2" in line and camstr[0]=='1': addFlag=1   
+    if addFlag==1:
+        chipID.append(lstr[0])     
+        runFlag.append(1)           #set run flag
+        devtype.append(lstr[6])
+        devvalue.append(float(lstr[7])) 
+
+# See if we limit ourselves to a specific set of chipID (seperated by "|").
+if opt.sensor!='all':
+    lstr=opt.sensor.split('|')
+    for i in range(len(chipID)): runFlag[i]=0
+    for j in range(len(lstr)):
+        for i in range(len(chipID)): 
+            if lstr[j]==chipID[i]:
+                runFlag[i]=1
+                break
+
+lastchip=chipID[-1]
+chipcounter1=0
+chipcounter2=0
+tc=0
+i=0
+
+# *************************************************************
+# Within the fgollowing loop we run the trim program for each selected
+# chip . This makes a seperate trimmed object file applicable fo each chip.
+# We will use these files later when we run phosim, one for each chip
+# *************************************************************
+# Note that we have to be in a directory (workDir) where we have permission to
+# write files
+# The "trim" catalog file will have a list of the specfic chip trimed object
+# files we are creating
+# *************************************************************
+for cid in chipID:
+    if chipcounter1==0:
+        jobName='trim_'+observationID+'_'+str(tc)
+        inputParams=jobName+'.pars'
+        pfile=open(inputParams,'w')  
+        pfile.write('ncatalog %d\n' % ncat) 
+
+    pfile.write('chipid %d %s\n' % (chipcounter1,cid)) 
+    chipcounter1+=1
+    if runFlag[i]==1: 
+        chipcounter2+=1 
+    if chipcounter1==9 or cid==lastchip:   #Apparently we do groups of 9. May not be consecitive chips
+        pfile.write('ntrim %d\n' % chipcounter1)
+        pfile.write(open('obs_'+observationID+'.pars').read())
+        if flatdir==1:
+            for line in open('catlist_'+observationID+'.pars'):
+                 lstr=line.split()  
+                 pfile.write('%s %s %s\n' % (lstr[0],lstr[1],lstr[2].split('/')[-1]))
+        else:
+            pfile.write(open('catlist_'+observationID+'.pars').read())
+        pfile.close()
+        if chipcounter2>0:
+            if opt.grid == 'no':
+                runProgram("trim < "+inputParams, binDir)
+            elif opt.grid == 'condor':
+                nexp=nsnap if devtype[i]=='CCD' else int(vistime/devvalue[i])
+                dagfile.write('JOB %s %s/%s.submit\n' % (jobName,workDir,jobName))
+                dagfile.write('SCRIPT POST %s condor/chip posttrim %s %d %d %s %s\n' % (jobName,observationID,tc,nexp,dataDir,workDir))
+                dagfile.write('RETRY %s 3\n' % (jobName))
+                writeSubmit('trim',jobName,opt.universe)
+        if opt.grid == 'no' or (opt.grid == 'condor' and chipcounter2==0):  
+            remove_file(inputParams)
+        chipcounter1=0
+        chipcounter2=0
+        tc+=1
+    i+=1 
+
+# ********************************************************************
+# At this point all the .pars files have be created, all atmosphere screens made
+# and all the trim files made
+# Now iterate through selected chips
+# ********************************************************************
+
+chipcounter1=0
+tc=0
+counter=0
+jobs=[]
+i=0
+seg=open(instrDir+'/segmentation.txt').readlines()
+
+# ********************************************************************
+# minNumSources as input is the minimum number of sources in the 
+# field-of-view of a chip that we can accept for continuing a simulation of 
+# that chip. The file trimcatalog__'+observationID+'_'+cid+'.pars'
+# has a list of objects that pass the trim cutting for that chip. 
+# When there are any sources in the trimcatalog_ FILE IT ALSO HAS 2 BLANK 
+# LINES IN IT plus a line for each object!!! Otherwise it has one blank line 
+# if there are no sources(objects) in the filed of view of the chip
+# So when we test that file we have to look for minsoure+2 lines or more
+# to insure we have enough sources to proceeed.
+# *********************************************************************
+
+for cid in chipID:
+    if runFlag[i]==1:
+        numSources=minNumSources
+        if opt.grid == 'no': 
+            numSources=len(open('trimcatalog_'+observationID+'_'+cid+'.pars').readlines())
+            
+            # find number of lines in the trimcatalog file for this chip
+            # subtract 2 for the blank lines to get the actual number of sources (objects)
+            numSources=numSources-2
+	
+	#Test we have at least minNumSources sources seen by this chip.
+        if numSources>=minNumSources:
+            nexp=nsnap if devtype[i]=='CCD' else int(vistime/devvalue[i])
+            ex=0
+            while ex<nexp:
+                eid="E%03d" % (ex)
+                fid=observationID+'_'+cid+'_'+eid
+                pfile=open('image_'+fid+'.pars','w')
+                pfile.write("chipid %s\n" % cid)
+                pfile.write("exposureid %d\n" % ex)
+                pfile.write("nsnap %d\n" % nexp)
+                pfile.close()
+                # -------------------
+                # 5)  PHOTON RAYTRACE
+                # -------------------
+                pfile=open('raytrace_'+fid+'.pars','w')
+                pfile.write(open('obs_'+observationID+'.pars').read())
+                pfile.write(open('atmosphere_'+observationID+'.pars').read())
+                pfile.write(open('optics_'+observationID+'.pars').read())
+                pfile.write(open('chip_'+observationID+'_'+cid+'.pars').read())
+                pfile.write(open('image_'+fid+'.pars').read())
+                if extraCommands!='none':
+                    pfile.write(open(extraCommands).read()) 
+                if opt.grid == 'no': 
+                    pfile.write(open('trimcatalog_'+observationID+'_'+cid+'.pars').read()) 
+                pfile.close()
+                # ------------------------------
+                # 6)  ELECTRONS TO ADC CONVERTER
+                # ------------------------------
+                if opt.e2adc==1:
+                    pfile=open('e2adc_'+fid+'.pars','w')
+                    pfile.write(open('obs_'+observationID+'.pars').read())
+                    pfile.write(open('readout_'+observationID+'_'+cid+'.pars').read())
+                    pfile.write(open('image_'+fid+'.pars').read())
+                    pfile.close()
+
+                remove_file('image_'+fid+'.pars')
+                ex+=1 
+
+    chipcounter1+=1
+    if chipcounter1==9:
+        tc+=1 
+        chipcounter1=0
+       
+
+    if opt.grid == 'no':
+        if os.path.exists('trimcatalog_'+observationID+'_'+cid+'.pars'):
+            remove_file('trimcatalog_'+observationID+'_'+cid+'.pars')
+    remove_file('readout_'+observationID+'_'+cid+'.pars')
+    remove_file('chip_'+observationID+'_'+cid+'.pars')
+    i+=1
+
+remove_file('obs_'+observationID+'.pars')
+remove_file('atmosphere_'+observationID+'.pars')
+remove_file('optics_'+observationID+'.pars')
+remove_file('catlist_'+observationID+'.pars')
+
+if opt.grid == 'no':
+    for p in jobs:
+        p.join()
+    
+#    remove_file('airglowscreen_'+observationID+'.fits')
+    remove_file('objectcatalog_'+observationID+'_1.pars')
+    remove_file('objectcatalog_'+observationID+'_2.pars')
+    remove_file('objectcatalog_'+observationID+'_3.pars')
+    remove_file('objectcatalog_'+observationID+'_4.pars')
+#    remove_file('tracking_'+observationID+'.pars')
+#    for f in glob.glob('atmospherescreen_'+observationID+'_*') :
+#        remove_file(f) 
+#    for f in glob.glob('cloudscreen_'+observationID+'_*') :
+#        remove_file(f) 
+
+elif opt.grid == 'condor':
+    dagfile.close()
+    os.chdir(imsimsDir)
+    runProgram('condor_submit_dag dag_'+observationID+'.dag')

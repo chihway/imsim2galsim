@@ -1,7 +1,9 @@
 
-DISCLAIMER: 
-This repo is work in progress. Check with me (chihway54@gmail.com) first if 
-you plan to use it for anything. 
+DISCLAIMER
+============
+This repo is work in progress. Please check with me (chihway54@gmail.com) 
+first if you plan to use it for anything. 
+
 
 imsim2galsim
 ============
@@ -17,30 +19,38 @@ The ultimate goal is to compare the output catalogs of GalSim and ImSim. If
 they look sufficiently close, we can use the GalSim line to do analyses. In 
 principle this would save time...
 
-These simulations will be faster but with lower fidelity. Depending on the purpose, 
-one can choose from using the original ImSim framework or digress to using 
-the GalSim framework here.
+These simulations will be faster but with lower fidelity. Depending on the 
+purpose, one can choose from using the original ImSim framework or digress 
+to using the GalSim framework here.
 
 ============================================================
 What is in this repo
 ============================================================
 
 bin/  ==> python scripts that do the work
-- phosim2galsim_catalog.py
-- phosim2galsim_image.py
-- read_config.py
-- add_LSST_DM_header.py
-- magNorm2LSSTFlux.py
-- phosim_trimcat
+- phosim2galsim_catalog.py   (make intermediate catalog)
+- phosim2galsim_catalog2.py  (make intermediate catalog, with pre-calculated
+                              magnitude conversion)
+- phosim2galsim_image.py     (make final GalSim image)
+- read_config.py             (used by phosim2galsim_image)
+- add_LSST_DM_header.py      (used by phosim2galsim_image)
+- phosim_trimcat             (make chip-size imsim catalogs)
+- run_phosim_mag2flux.sh     (wrapper script for phosim_mag2flux)
+- phosim_mag2flux.py         (look through redshift and filter)
+- magNorm2LSSTFlux.py        (convert mag to flux)
 
 input/  ==> the imsim input catalogs and lookup table for mag conversion
 - raytrace_XXX
-- mag2flux_star.dat
-- mag2flux_gal.dat
+- mag2flux/galaxySED
+           ssmSED
+           starSED
 
 example/  ==> demo of how these things run, instructions in README
+- README
+- rotation_0.tar.gz
 
-NB1: Recommend generate work/ directory to run things and intermediate files.
+NB1: Recommend generate work/ directory to run things and put intermediate 
+files. This is the default assumption for all instructions.
 
 NB2: The full framework starts of the trimmed, single-chip imsim catalogs.
 See below 'Pre-requisite/ImSim' for how these can be generated from scratch.
@@ -54,22 +64,25 @@ See github site for all the details about installation etc.
 
 * ImSim (https://dev.lsstcorp.org/cgit/LSST/sims/phosim.git/)
 Only really the beginning part of the simulation code is needed for the 
-purpose of this project, but you should install the full ImSim since 
-everything seems to be sort of integrated...
+purpose of this project (unless you want to make imsim images yourself), 
+but you should install the full ImSim since everything seems to be sort 
+of integrated...
 
-If you also download all the SEDs, you can run the magnitude conversion code 
-yourself. Otherwise use the lookup table provided in input/.
+If you also download all the SEDs, you can run the magnitude conversion 
+code yourself. Otherwise use the conversion provided in input/mag2flux/
 
 Once you have ImSim set up. You can run:
+
 cd YourImsimInstallation/work
 ../phosim TheCatalogYouWantToRun
 
 This will produce a bunch of images and at the same time kill all the 
-intermediate files, which is kind of a shame…
+intermediate files, which is kind of a shame...
 
-Alternatively, you can use the scripts in 'phosim_trimcat' instead of 
-'phosim' to generate the trimmed catalogs (with file name 'raytrace_XXXX') that 
-will become the input to the main scripts in this project.
+Alternatively, you can use the scripts in 'phosim_trimcat' in the bin/ 
+directory instead of 'phosim' to generate the trimmed catalogs (with file 
+name 'raytrace_XXXX') that will become the input to the main scripts in 
+this project.
 
 * LSST DM (https://dev.lsstcorp.org/trac/wiki/Installing/Winter2013#StepbystepinstructionsforLinux)
 Here's a useful instruction for how to install it at SLAC:
@@ -82,20 +95,6 @@ NB: check inside scripts to swap out where all these codes are located.
 How to run
 ============================================================
 
-There are several ways to go from here.
-
-------------------------------------------------------------
-* I just want to generate some image that has roughly the LSST sky 
-properties and is compatable with DM.
-
-1. Sample the galaxy population and generate a catalog
-
-2. Generate GalSim images with catalog from 1.
-
-
-------------------------------------------------------------
-* I am familiar with PhoSim and have the PhoSim instant catalogs handy.
-
 1. Trim the PhoSim instant catalog into chip-size images.
 
 2. Transform a PhoSim trimmed catalog into something GalSim understands
@@ -103,16 +102,6 @@ properties and is compatable with DM.
 
 3. Generate GalSim image with the catalog from 2. 
    phosim2galsim_image.py [ input config file ] [ input star file ] [ input galaxy file ] [ output temp fits file ] [ output final fits file ] [ whether to use approximate magnitude conversion ] [ whether to use photon shooting ]
-
-------------------------------------------------------------
-* I have the ImSim database setup and want to go from there.
-
-1. Query some patch of sky ~ LSST fov
-
-2. Select some observing parameters
-
-3. Make chip-size images (or full-field image?)
-
 
 
 =====================================================

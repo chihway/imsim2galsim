@@ -45,7 +45,7 @@ outfile=open(outfilename,'a')
 for filt in range(6):
   for zbin in range(Nzbines):
     z=zbin*0.1
-    os.system('cp '+str(seddir)+'/'+str(subseddir)+'/'+str(sedfile)+' tempspec_'+str(sedfile)
+    os.system('cp '+str(seddir)+'/'+str(subseddir)+'/'+str(sedfile)+' tempspec_'+str(sedfile))
     os.system('gunzip tempspec_'+str(sedfile))
     galsim_flux=magNorm2LSSTFlux.magNorm2LSSTFlux('tempspec_'+str(sedfile[:-3]), str(filtdir)+'total_'+str(Filt[filt])+'.dat', 20.0, z) * pixelsize**2   
     os.system('rm -f tempspec_'+str(sedfile[:-3]))

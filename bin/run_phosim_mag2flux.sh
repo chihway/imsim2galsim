@@ -20,14 +20,17 @@
 
 # galaxies
 cd /nfs/slac/g/ki/ki08/chihway/SEDs/galaxySED
-files=($(find -E . -type f -regex "*.gz"))
+files=($(find . -name "*.gz"))
 
 cd /nfs/slac/g/ki/ki08/chihway/imsim2galsim/work
 for item in ${files[*]}
 do
 
-#bsub -q kipac-ibq 
-/afs/slac/g/ki/software/python/2.7.3/bin/python phosim_mag2flux.py galaxySED item
+echo $item
+#echo ${files[item]}
+bsub -q kipac-ibq -o ../log/log_${item:2} /afs/slac/g/ki/software/python/2.7.3/bin/python /nfs/slac/g/ki/ki08/chihway/imsim2galsim/bin/phosim_mag2flux.py galaxySED ${item:2} 50
+
+sleep 0.5
 
 done
 

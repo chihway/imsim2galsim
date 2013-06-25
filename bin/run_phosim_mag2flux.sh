@@ -1,3 +1,5 @@
+#! /bin/sh
+
 # Purpose:
 #
 # Wrapper script to parallelize the phosim_mag2flux.py over all SEDs 
@@ -16,8 +18,6 @@
 #               wDs/             3378               3378
 #
 
-python=/afs/slac/g/ki/software/python/2.7.3/bin/python
-
 # galaxies
 cd /nfs/slac/g/ki/ki08/chihway/SEDs/galaxySED
 files=($(find -E . -type f -regex "*.gz"))
@@ -27,7 +27,7 @@ for item in ${files[*]}
 do
 
 #bsub -q kipac-ibq 
-${python} phosim_mag2flux.py galaxySED item
+/afs/slac/g/ki/software/python/2.7.3/bin/python phosim_mag2flux.py galaxySED item
 
 done
 

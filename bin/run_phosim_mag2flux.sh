@@ -26,8 +26,8 @@ cd /nfs/slac/g/ki/ki08/chihway/imsim2galsim/work
 for item in ${files[*]}
 do
 
-echo $item
-#echo ${files[item]}
+#echo $item
+echo ${files[item]}
 bsub -q kipac-ibq -o ../log/log_${item:2} /afs/slac/g/ki/software/python/2.7.3/bin/python /nfs/slac/g/ki/ki08/chihway/imsim2galsim/bin/phosim_mag2flux.py galaxySED ${item:2} 50
 
 sleep 0.5
@@ -35,5 +35,37 @@ sleep 0.5
 done
 
 # ssm
+cd /nfs/slac/g/ki/ki08/chihway/SEDs/ssmSED
+files=($(find . -name "*.gz"))
+
+cd /nfs/slac/g/ki/ki08/chihway/imsim2galsim/work
+for item in ${files[*]}
+do
+
+echo $item
+#echo ${files[item]}
+bsub -q kipac-ibq -o ../log/log_${item:2} /afs/slac/g/ki/software/python/2.7.3/bin/python /nfs/slac/g/ki/ki08/chihway/imsim2galsim/bin/phosim_mag2flux.py ssmSED ${item:2} 1
+
+sleep 0.5
+
+done
 
 # stars
+for startype in gizis_SED kurucz mlt wDs
+do
+
+cd /nfs/slac/g/ki/ki08/chihway/SEDs/starSED/${startype}
+files=($(find . -name "*.gz"))
+
+cd /nfs/slac/g/ki/ki08/chihway/imsim2galsim/work
+for item in ${files[*]}
+do
+
+echo $item
+#echo ${files[item]}
+bsub -q kipac-ibq -o ../log/log_${item:2} /afs/slac/g/ki/software/python/2.7.3/bin/python /nfs/slac/g/ki/ki08/chihway/imsim2galsim/bin/phosim_mag2flux.py starSED/${startype} ${item:2} 1
+
+sleep 0.5
+
+done
+done

@@ -1,4 +1,8 @@
 
+DISCLAIMER: 
+This repo is work in progress. Check with me (chihway54@gmail.com) first if 
+you plan to use it for anything. 
+
 imsim2galsim
 ============
 

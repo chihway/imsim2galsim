@@ -26,21 +26,35 @@
 import numpy, os, sys
 import magNorm2LSSTFlux
 
-SEDdir=
-lookupdir=
+Filt=[ 'u','g','r','i','z','y4' ]
+skysed='/nfs/slac/g/ki/ki06/lsst/chihway/phosim-v-3.2/data/sky/darksky_sed.txt'
+filtdir='/nfs/slac/g/ki/ki06/lsst/chihway/phosim-v-3.2/data/lsst/'
+seddir='/nfs/slac/g/ki/ki06/lsst/chihway/phosim-v-3.2/data/SEDs/'
+outdir='/nfs/slac/g/ki/ki08/chihway/imsim2galsim/input/mag2flux'
+pixelsize=0.2
 
 # galaxy
 
-SEDfiles = [ f for f in listdir(SEDdir+'/galaxySED')]
+SEDfiles = [ f for f in listdir(seddir+'/galaxySED')]
 for sedid in range(len(SEDfiles)):
-  outfilename=
-  outfile=open()
+  outfilename=str(outdir)+'/galaxySED/'+str(SEDfiles[sedid][:-3])
+  if os.path.isfile(outfilename):
+    os.remove(outfilename)
+  outfile=open(outfilename,'a')
   for filt in range(6):
     for zbin in range(50):
-    
+      z=zbin*0.1
+      os.system('cp '+str(seddir)+'galaxySED'+str(SEDfiles[sedid])+' tempspec_'+str(SEDfiles[sedid]))
+      os.system('gunzip tempspec_'+str(SEDfiles[sedid]))
+      galsim_flux=magNorm2LSSTFlux.magNorm2LSSTFlux('tempspec_'+str(SEDfiles[sedid][:-3]), str(filtdir)+'total_'+str(Filt[filt])+'.dat', 20.0, z) * pixelsize**2   
+      os.system('rm -f tempspec_'+str(SEDfiles[sedid][:-3]))
+      outfile.write(str(filt)+'\t'+str(z)+'\t'+str(galsim_flux)+'\n')
+  outfile.close()
+
+"""
 # ssm
 
-SEDfiles = [ f for f in listdir(SEDdir+'/ssmSED')]
+SEDfiles = [ f for f in listdir(seddir+'/ssmSED')]
 for sedid in range(len(SEDfiles)):
   outfilename=
   outfile=open()
@@ -50,8 +64,9 @@ for sedid in range(len(SEDfiles)):
 
 starSEDclass=['gizis_SED','kurucz','mlt','wDs']
 for starclassid in range(4):
-  SEDfiles = [ f for f in listdir(SEDdir+'/starSED/'+starSEDclass[starclassid])]
+  SEDfiles = [ f for f in listdir(seddir+'/starSED/'+starSEDclass[starclassid])]
   for sedid in range(len(SEDfiles)):
     outfilename=
     outfile=open()
     for filt in range(6):
+"""

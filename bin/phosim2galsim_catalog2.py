@@ -297,10 +297,10 @@ tempfile.close()
 for i in range(len(phosim_id)):
   sed=str(tempinlines[i].split()[5])
   if (galsim_x[i]>=0 and galsim_x[i]<=chipsizex and galsim_y[i]>=0 and galsim_y[i]<=chipsizey):
-    zbin=int(phosim_z/0.1)
+    zbin=int(phosim_z[i]/0.1)
     flux1=float(open(str(mag2fluxdir)+str(sed)[:-3]).readlines()[filt*50+zbin])
     flux2=float(open(str(mag2fluxdir)+str(sed)[:-3]).readlines()[filt*50+zbin+1])
-    galsim_flux=flux1+(flux2-flux1)*(phosim_z-(zbin*0.1))/0.1
+    galsim_flux=flux1+(flux2-flux1)*(phosim_z[i]-(zbin*0.1))/0.1
     print galsim_flux
 
     #if (galsim_flux>1):

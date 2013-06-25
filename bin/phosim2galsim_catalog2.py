@@ -80,7 +80,7 @@ Filt=[ 'u','g','r','i','z','y4' ]
 skysed='/nfs/slac/g/ki/ki06/lsst/chihway/phosim-v-3.2/data/sky/darksky_sed.txt'
 filtdir='/nfs/slac/g/ki/ki06/lsst/chihway/phosim-v-3.2/data/lsst/'
 seddir='/nfs/slac/g/ki/ki06/lsst/chihway/phosim-v-3.2/data/SEDs/'
-mag2fluxdir='/nfs/slac/g/ki/ki08/chihway/imsim2galsim/input/mag2flux'
+mag2fluxdir='/nfs/slac/g/ki/ki08/chihway/imsim2galsim/input/mag2flux/'
 
 # useful conversions
 deg2pix=60.0*60.0/pixelsize
@@ -298,7 +298,6 @@ for i in range(len(phosim_id)):
   sed=str(tempinlines[i].split()[5])
   if (galsim_x[i]>=0 and galsim_x[i]<=chipsizex and galsim_y[i]>=0 and galsim_y[i]<=chipsizey):
     zbin=int(phosim_z/0.1)
-    galsim_flux=phosim_mag phosim_z
     flux1=float(open(str(mag2fluxdir)+str(sed)[:-3]).readlines()[filt*50+zbin])
     flux2=float(open(str(mag2fluxdir)+str(sed)[:-3]).readlines()[filt*50+zbin+1])
     galsim_flux=flux1+(flux2-flux1)*(phosim_z-(zbin*0.1))/0.1
@@ -337,14 +336,12 @@ for i in range(len(phosim_id)):
 #for i in range(3000):
   sed=str(tempinlines[i].split()[5])
   if (galsim_x[i]>=0 and galsim_x[i]<=chipsizex and galsim_y[i]>=0 and galsim_y[i]<=chipsizey):
-    os.system('cp '+str(seddir)+str(sed)+' tempspec_R'+str(rx)+str(ry)+'_S'+str(sx)+str(sy)+'.gz')
-    os.system('gunzip tempspec_R'+str(rx)+str(ry)+'_S'+str(sx)+str(sy)+'.gz')
-    galsim_flux=magNorm2LSSTFlux.magNorm2LSSTFlux('tempspec_R'+str(rx)+str(ry)+'_S'+str(sx)+str(sy), 
-            str(filtdir)+'total_'+str(Filt[filt])+'.dat', phosim_mag[i], phosim_z[i]) * pixelsize**2   
-    os.system('rm -f tempspec_R'+str(rx)+str(ry)+'_S'+str(sx)+str(sy))
-    if (galsim_flux>1):
-      string=str(phosim_id[i])+'\t'+'Star'+'\t'+str(galsim_x[i])+'\t'+str(galsim_y[i]) \
+    galsim_flux=float(open(str(mag2fluxdir)+str(sed)[:-3]).readlines()[filt])
+    print galsim_flux
+
+    #if (galsim_flux>1):
+    string=str(phosim_id[i])+'\t'+'Star'+'\t'+str(galsim_x[i])+'\t'+str(galsim_y[i]) \
                 +'\t'+str(galsim_flux)+'\n'
           #print string
-      outfile3.write(string)
+    outfile3.write(string)
 outfile3.close()

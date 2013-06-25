@@ -27,7 +27,7 @@ for item in ${files[*]}
 do
 
 #echo $item
-echo ${files[item]}
+#echo ${files[item]}
 bsub -q kipac-ibq -o ../log/log_${item:2} /afs/slac/g/ki/software/python/2.7.3/bin/python /nfs/slac/g/ki/ki08/chihway/imsim2galsim/bin/phosim_mag2flux.py galaxySED ${item:2} 50
 
 sleep 0.5
@@ -42,7 +42,7 @@ cd /nfs/slac/g/ki/ki08/chihway/imsim2galsim/work
 for item in ${files[*]}
 do
 
-echo $item
+#echo $item
 #echo ${files[item]}
 bsub -q kipac-ibq -o ../log/log_${item:2} /afs/slac/g/ki/software/python/2.7.3/bin/python /nfs/slac/g/ki/ki08/chihway/imsim2galsim/bin/phosim_mag2flux.py ssmSED ${item:2} 1
 
@@ -61,7 +61,7 @@ cd /nfs/slac/g/ki/ki08/chihway/imsim2galsim/work
 for item in ${files[*]}
 do
 
-echo $item
+#echo $item
 #echo ${files[item]}
 bsub -q kipac-ibq -o ../log/log_${item:2} /afs/slac/g/ki/software/python/2.7.3/bin/python /nfs/slac/g/ki/ki08/chihway/imsim2galsim/bin/phosim_mag2flux.py starSED/${startype} ${item:2} 1
 

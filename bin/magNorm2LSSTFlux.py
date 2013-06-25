@@ -60,6 +60,6 @@ def magNorm2LSSTFlux(SEDFile, filterFile, magNorm, redshift=0.0):
     flux = _integratedFlux(SEDWave * (1.0 + redshift), SEDFlambda / (1.0 + redshift), filterWave, filterThroughput)
     return flux * 10**(-0.4 * (magNorm - AB)) * 0.76 #empirical fudge factor!
 
-if __name__ == "__main__":
-    print magNorm2LSSTFlux("../../data/SEDs/PB12/KIN_Sa_ext.ascii", "filters/LSST_g.dat", 19.945, 0.0)
-    print magNorm2LSSTFlux("../../data/SEDs/PB12/KIN_Sa_ext.ascii", "filters/LSST_g.dat", 16.946, 1.0)
+#if __name__ == "__main__":
+#    print magNorm2LSSTFlux("../../data/SEDs/PB12/KIN_Sa_ext.ascii", "filters/LSST_g.dat", 19.945, 0.0)
+#    print magNorm2LSSTFlux("../../data/SEDs/PB12/KIN_Sa_ext.ascii", "filters/LSST_g.dat", 16.946, 1.0)

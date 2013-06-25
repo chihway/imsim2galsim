@@ -34,9 +34,9 @@ seddir='/nfs/slac/g/ki/ki06/lsst/chihway/phosim-v-3.2/data/SEDs/'
 outdir='/nfs/slac/g/ki/ki08/chihway/imsim2galsim/input/mag2flux'
 pixelsize=0.2
 
-subseddir=sys.argv[1]
-sedfile=sys.argv[2]
-Nzbines=sys.argv[3]
+subseddir=str(sys.argv[1])
+sedfile=str(sys.argv[2])
+Nzbines=int(sys.argv[3])
 
 outfilename=str(outdir)+'/'+str(subseddir)+'/'+str(sedfile[:-3])
 if os.path.isfile(outfilename):

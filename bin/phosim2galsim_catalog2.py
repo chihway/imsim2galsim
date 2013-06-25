@@ -297,16 +297,20 @@ tempfile.close()
 for i in range(len(phosim_id)):
   sed=str(tempinlines[i].split()[5])
   if (galsim_x[i]>=0 and galsim_x[i]<=chipsizex and galsim_y[i]>=0 and galsim_y[i]<=chipsizey):
-    zbin=int(phosim_z[i]/0.1)
-    flux1=float(open(str(mag2fluxdir)+str(sed)[:-3]).readlines()[filt*50+zbin][2])
-    flux2=float(open(str(mag2fluxdir)+str(sed)[:-3]).readlines()[filt*50+zbin+1][2])
-    galsim_flux=flux1+(flux2-flux1)*(phosim_z[i]-(zbin*0.1))/0.1
-    print galsim_flux
+    if os.path.isfile(str(mag2fluxdir)+str(sed)[:-3]): # this is a hack!
+      zbin=int(phosim_z[i]/0.1)
+      #print zbin, str(sed)
+      flux1=float(open(str(mag2fluxdir)+str(sed)[:-3]).readlines()[filt*50+zbin][2])
+      flux2=float(open(str(mag2fluxdir)+str(sed)[:-3]).readlines()[filt*50+zbin+1][2])
+      galsim_flux=flux1+(flux2-flux1)*(phosim_z[i]-(zbin*0.1))/0.1
+      galsim_flux=10**((phosim_mag[i]-20.0)/(-2.5))*galsim_flux
 
-    #if (galsim_flux>1):
-    string=str(phosim_id[i])+'\t'+'Sersic'+'\t'+str(galsim_x[i])+'\t'+str(galsim_y[i])+'\t'+str(phosim_z[i])+'\t'+str(galsim_flux)+'\t'+str(phosim_a[i]) +'\t'+str(phosim_b[i])+'\t'+str(phosim_theta[i]-(rotationangle*deg2rad))+'\t'+str(phosim_n[i])+'\t'+str(galsim_kappa[i])+'\t'+str(galsim_gamma1[i])+'\t'+str(galsim_gamma2[i])+'\n'
+      if (galsim_flux>0):
+        string=str(phosim_id[i])+'\t'+'Sersic'+'\t'+str(galsim_x[i])+'\t'+str(galsim_y[i])+'\t'+str(phosim_z[i])+'\t'+str(galsim_flux)+'\t'+str(phosim_a[i]) +'\t'+str(phosim_b[i])+'\t'+str(phosim_theta[i]-(rotationangle*deg2rad))+'\t'+str(phosim_n[i])+'\t'+str(galsim_kappa[i])+'\t'+str(galsim_gamma1[i])+'\t'+str(galsim_gamma2[i])+'\n'
     # note rotation angle, units change in the next phosim version
-    outfile2.write(string)
+        outfile2.write(string)
+    else:
+      print 'no spec'    
 outfile2.close()   
 
 logger.info("Now get parameters from stars...")
@@ -336,12 +340,18 @@ for i in range(len(phosim_id)):
 #for i in range(3000):
   sed=str(tempinlines[i].split()[5])
   if (galsim_x[i]>=0 and galsim_x[i]<=chipsizex and galsim_y[i]>=0 and galsim_y[i]<=chipsizey):
-    galsim_flux=float(open(str(mag2fluxdir)+str(sed)[:-3]).readlines()[filt])[2]
-    print galsim_flux
+    #print str(mag2fluxdir)+str(sed)[:-3]
+    if os.path.isfile(str(mag2fluxdir)+str(sed)[:-3]): # this is a hack!
+      galsim_flux=float(open(str(mag2fluxdir)+str(sed)[:-3]).readlines()[filt][2])
+      galsim_flux=10**((phosim_mag[i]-20.0)/(-2.5))*galsim_flux
+      #print galsim_flux
 
-    #if (galsim_flux>1):
-    string=str(phosim_id[i])+'\t'+'Star'+'\t'+str(galsim_x[i])+'\t'+str(galsim_y[i]) \
+      if (galsim_flux>0):
+        string=str(phosim_id[i])+'\t'+'Star'+'\t'+str(galsim_x[i])+'\t'+str(galsim_y[i]) \
                 +'\t'+str(galsim_flux)+'\n'
           #print string
-    outfile3.write(string)
+        outfile3.write(string)
+    else: 
+      print 'no spec' 
+
 outfile3.close()

@@ -79,6 +79,7 @@ galfile=open(galfilename,'r')
 gallines=galfile.readlines()
 galfile.close()
 for k in range(len(gallines)):
+  #print k
   # individual galaxy component parameters
   parameters=gallines[k].split()
 
@@ -128,6 +129,7 @@ starfile=open(starfilename,'r')
 starlines=starfile.readlines()
 starfile.close()
 for k in range(len(starlines)):
+  #print k
   # individual galaxy component parameters
   parameters=starlines[k].split()
 

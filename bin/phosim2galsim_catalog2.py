@@ -299,11 +299,13 @@ for i in range(len(phosim_id)):
   if (galsim_x[i]>=0 and galsim_x[i]<=chipsizex and galsim_y[i]>=0 and galsim_y[i]<=chipsizey):
     if os.path.isfile(str(mag2fluxdir)+str(sed)[:-3]): # this is a hack!
       zbin=int(phosim_z[i]/0.1)
-      #print zbin, str(sed)
-      flux1=float(open(str(mag2fluxdir)+str(sed)[:-3]).readlines()[filt*50+zbin][2])
-      flux2=float(open(str(mag2fluxdir)+str(sed)[:-3]).readlines()[filt*50+zbin+1][2])
+      #print open(str(mag2fluxdir)+str(sed)[:-3]).readlines()[filt*50+zbin]
+      flux1=float(open(str(mag2fluxdir)+str(sed)[:-3]).readlines()[filt*50+zbin].split()[2])
+      flux2=float(open(str(mag2fluxdir)+str(sed)[:-3]).readlines()[filt*50+zbin+1].split()[2])
       galsim_flux=flux1+(flux2-flux1)*(phosim_z[i]-(zbin*0.1))/0.1
-      galsim_flux=10**((phosim_mag[i]-20.0)/(-2.5))*galsim_flux
+      #print flux1, flux2, phosim_z[i], phosim_mag[i], galsim_flux
+      galsim_flux=int(10**((phosim_mag[i]-20.0)/(-2.5))*galsim_flux)
+      #print galsim_flux
 
       if (galsim_flux>0):
         string=str(phosim_id[i])+'\t'+'Sersic'+'\t'+str(galsim_x[i])+'\t'+str(galsim_y[i])+'\t'+str(phosim_z[i])+'\t'+str(galsim_flux)+'\t'+str(phosim_a[i]) +'\t'+str(phosim_b[i])+'\t'+str(phosim_theta[i]-(rotationangle*deg2rad))+'\t'+str(phosim_n[i])+'\t'+str(galsim_kappa[i])+'\t'+str(galsim_gamma1[i])+'\t'+str(galsim_gamma2[i])+'\n'
@@ -342,8 +344,8 @@ for i in range(len(phosim_id)):
   if (galsim_x[i]>=0 and galsim_x[i]<=chipsizex and galsim_y[i]>=0 and galsim_y[i]<=chipsizey):
     #print str(mag2fluxdir)+str(sed)[:-3]
     if os.path.isfile(str(mag2fluxdir)+str(sed)[:-3]): # this is a hack!
-      galsim_flux=float(open(str(mag2fluxdir)+str(sed)[:-3]).readlines()[filt][2])
-      galsim_flux=10**((phosim_mag[i]-20.0)/(-2.5))*galsim_flux
+      galsim_flux=float(open(str(mag2fluxdir)+str(sed)[:-3]).readlines()[filt].split()[2])
+      galsim_flux=int(10**((phosim_mag[i]-20.0)/(-2.5))*galsim_flux)
       #print galsim_flux
 
       if (galsim_flux>0):

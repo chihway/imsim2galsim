@@ -26,11 +26,17 @@ cd /nfs/slac/g/ki/ki08/chihway/imsim2galsim/work
 for item in ${files[*]}
 do
 
+item2=${item:2}
+if [ ! -f /nfs/slac/g/ki/ki08/chihway/imsim2galsim/input/mag2flux/galaxySED/${item2%.gz} ]
+then
+
 #echo $item
 #echo ${files[item]}
 bsub -q kipac-ibq -o ../log/log_${item:2} /afs/slac/g/ki/software/python/2.7.3/bin/python /nfs/slac/g/ki/ki08/chihway/imsim2galsim/bin/phosim_mag2flux.py galaxySED ${item:2} 50
 
 sleep 0.5
+
+fi
 
 done
 
@@ -42,11 +48,17 @@ cd /nfs/slac/g/ki/ki08/chihway/imsim2galsim/work
 for item in ${files[*]}
 do
 
+item2=${item:2}
+if [ ! -f /nfs/slac/g/ki/ki08/chihway/imsim2galsim/input/mag2flux/ssmSED/${item2%.gz} ]
+then
+
 #echo $item
 #echo ${files[item]}
 bsub -q kipac-ibq -o ../log/log_${item:2} /afs/slac/g/ki/software/python/2.7.3/bin/python /nfs/slac/g/ki/ki08/chihway/imsim2galsim/bin/phosim_mag2flux.py ssmSED ${item:2} 1
 
 sleep 0.5
+
+fi
 
 done
 
@@ -61,11 +73,18 @@ cd /nfs/slac/g/ki/ki08/chihway/imsim2galsim/work
 for item in ${files[*]}
 do
 
+item2=${item:2}
+if [ ! -f /nfs/slac/g/ki/ki08/chihway/imsim2galsim/input/mag2flux/starSED/${startype}/${item2%.gz} ]
+then
+
 #echo $item
 #echo ${files[item]}
-bsub -q kipac-ibq -o ../log/log_${item:2} /afs/slac/g/ki/software/python/2.7.3/bin/python /nfs/slac/g/ki/ki08/chihway/imsim2galsim/bin/phosim_mag2flux.py starSED/${startype} ${item:2} 1
+bsub -q xxl -o ../log/log_${item:2} /afs/slac/g/ki/software/python/2.7.3/bin/python /nfs/slac/g/ki/ki08/chihway/imsim2galsim/bin/phosim_mag2flux.py starSED/${startype} ${item:2} 1
 
-sleep 0.5
+sleep 0.1
+
+fi
 
 done
 done
+

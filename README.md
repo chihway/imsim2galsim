@@ -21,7 +21,9 @@ principle this would save time...
 
 These simulations will be faster but with lower fidelity. Depending on the 
 purpose, one can choose from using the original ImSim framework or digress 
-to using the GalSim framework here.
+to using the GalSim framework here. Each LSST chips takes <1 minute to 
+generate the intermediate catalog and 10 minutes to make the image. Further 
+optimization is highly possible.
 
 ============================================================
 What is in this repo
@@ -41,9 +43,7 @@ bin/  ==> python scripts that do the work
 
 input/  ==> the imsim input catalogs and lookup table for mag conversion
 - raytrace_XXX
-- mag2flux/galaxySED
-           ssmSED
-           starSED
+- mag2flux.tar.gz
 
 example/  ==> demo of how these things run, instructions in README
 - README
@@ -103,6 +103,7 @@ How to run
 3. Generate GalSim image with the catalog from 2. 
    phosim2galsim_image.py [ input config file ] [ input star file ] [ input galaxy file ] [ output temp fits file ] [ output final fits file ] [ whether to use approximate magnitude conversion ] [ whether to use photon shooting ]
 
+(with photon-shooting=1, the speed of the image generation will scale with the number of photons)
 
 =====================================================
 What should be in a configuration file?

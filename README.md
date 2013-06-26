@@ -106,7 +106,7 @@ How to run
 (with photon-shooting=1, the speed of the image generation will scale with the number of photons)
 
 =====================================================
-What should be in a configuration file?
+What should be in a configuration file if you want to make your own?
 =====================================================
 
 A configuration file should look like this (without the comments after '#'):
@@ -148,3 +148,51 @@ Pixelsize      0.2      # arcsec/pixel
 Optpsfsize     0.35     # optical PSF FWHM (") at zenith
 
 NB: default values (as listed) will be filled in if not provided in the config file
+
+=====================================================
+What should be in a star catalog if you want to make your own?
+=====================================================
+
+ID
+
+object type
+
+x (pixels)
+
+y (pixels)
+
+redshift
+
+flux (# photons)
+
+=====================================================
+What should be in a galaxy catalog if you want to make your own?
+=====================================================
+
+The columns of the catalog files goes like:
+
+ID
+
+object type
+
+x (pixels)
+
+y (pixels)
+
+redshift
+
+flux (# photons)
+
+halflight radius a (arcsec)
+
+halflight radius b (arcsec)
+
+rotation angle (radians)
+
+Sersic index
+
+kappa 
+
+gamma1
+
+gamma2
